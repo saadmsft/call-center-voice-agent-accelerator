@@ -1,0 +1,17 @@
+# Generated from pyproject.toml dependencies
+quart>=0.20.0
+websockets>=15.0.0
+httpx>=0.28.0
+python-dotenv>=1.1.0
+quart-cors>=0.8.0
+azure-core>=1.34.0
+azure-communication-identity>=1.5.0
+aiohttp>=3.12.14
+azure-eventgrid>=4.22.0
+azure-identity>=1.23.0
+azure-communication-callautomation>=1.4.0
+openai[realtime]>=1.93.0
+h2>=4.3.0
+hypercorn>=0.16.0
+gunicorn>=21.2.0
+uvicorn>=0.25.0

@@ -47,10 +47,10 @@ The solution includes:
 ### Prerequisites and Costs
 To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups and resources**. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetUp.md).
 
-Check the [Azure Products by Region](https://azure.microsoft.com/explore/global-infrastructure/products-by-region/table) page and select a **region** where the following services are available: Azure AI Foundry Speech, Azure Communication Services, Azure Container Apps, and Container Registry.
+Check the [Azure Products by Region](https://azure.microsoft.com/explore/global-infrastructure/products-by-region/table) page and select a **region** where the following services are available: Azure AI Foundry Speech, Azure Communication Services, and Azure App Service.
 
 Here are some example regions where the services are available: East US2, West US2, Southeast Asia, Central India, Sweden Central.
-Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. However, Azure Container Registry has a fixed cost per registry per day.
+Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers.
 
 Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to calculate the cost of this solution in your subscription.
 
@@ -58,8 +58,7 @@ Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/cal
 |---|---|---|
 | [Azure Speech Voice Live ](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live/) | Low-latency and high-quality speech to speech interactions | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/) |
 | [Azure Communication Services](https://learn.microsoft.com/azure/communication-services/overview) | Server-based intelligent call workflows | [Pricing](https://azure.microsoft.com/pricing/details/communication-services/) |
-| [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/) | Hosts the web application frontend | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
-| [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/) | Stores container images for deployment | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |
+| [Azure App Service](https://learn.microsoft.com/azure/app-service/) | Hosts the Python web application | [Pricing](https://azure.microsoft.com/pricing/details/app-service/linux/) |
 
 
 Here are some developers tools to set up as prerequisites:
@@ -138,7 +137,15 @@ If you're not using one of the above options for opening the project, then you'l
 
 Once you've opened the project in [Codespaces](#github-codespaces) or in [Dev Containers](#vs-code-dev-containers) or [locally](#local-environment), you can deploy it to Azure following the following steps. 
 
+> **Note**: This accelerator uses **Azure App Service** for hosting. See [App Service Deployment Guide](./docs/APP_SERVICE_DEPLOYMENT.md) for detailed information about the deployment architecture, scaling, and monitoring.
+
 To change the `azd` parameters from the default values, follow the steps [here](./docs/customizing_azd_parameters.md). 
+
+#### Using Existing Resources
+
+**If you want to use existing Azure Communication Services or AI Services resources** instead of creating new ones, see the [Using Existing Resources guide](./docs/USE_EXISTING_RESOURCES.md) before proceeding with deployment.
+
+#### Standard Deployment
 
 1. Login to Azure:
 
@@ -177,11 +184,11 @@ After deployment, you can verify that your Voice Agent is running correctly usin
 
 🌐 Web Client (Test Mode)
 
-Use this browser-based client to confirm your Container App is up and responding.
+Use this browser-based client to confirm your App Service is up and responding.
 
 1. Go to the [Azure Portal](https://portal.azure.com) and navigate to the **Resource Group** created by your deployment.
-2. Find and open the **Container App** resource.
-3. On the **Overview** page, copy the **Application URL**.
+2. Find and open the **App Service** resource.
+3. On the **Overview** page, copy the **Default domain** (URL).
 4. Open the URL in your browser — a demo webpage should load.
 5. Click **Start Talking to Agent** to begin a voice session using your browser’s microphone and speaker.
 6. Click **Stop Conversation** to end the session.
@@ -207,7 +214,7 @@ This simulates a real inbound phone call to your voice agent using **Azure Commu
      ```
      https://<your-container-app-url>/acs/incomingcall
      ```
-     Replace `<your-container-app-url>` with the Application URL from your Container App.
+     Replace `<your-app-service-url>` with the Default domain URL from your App Service.
 
 📸 Refer to the screenshot below for guidance:
 
@@ -262,7 +269,7 @@ If you want to redeploy to a different region, delete the `.azure` directory bef
 
 ## Security Considerations
 
-ACS currently does not support Managed Identity. The ACS connection string is stored securely in Key Vault and injected into the container app via its secret URL.
+ACS currently does not support Managed Identity. The ACS connection string is stored securely in Key Vault and injected into the App Service via Key Vault reference.
 
 
 ## Additional Disclaimers

@@ -6,15 +6,13 @@ requiredVersions:
 services:
     app:
         project: server
-        host: containerapp
+        host: appservice
         language: python
-        docker:
-          path: Dockerfile
-          remoteBuild: true
 pipeline:
   variables:
     - AZURE_LOCATION
     - AZURE_RESOURCE_GROUP
-    - AZURE_CONTAINER_REGISTRY_ENDPOINT
+    - AZURE_APP_SERVICE_NAME
+    - AZURE_APP_SERVICE_URL
     - SERVICE_API_ENDPOINTS
     - AZURE_VOICE_LIVE_ENDPOINT

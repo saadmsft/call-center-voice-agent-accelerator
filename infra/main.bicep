@@ -15,12 +15,20 @@ param location string
 
 var abbrs = loadJsonContent('./abbreviations.json')
 param useApplicationInsights bool = true
-param useContainerRegistry bool = true
 param appExists bool
 @description('The OpenAI model name')
 param modelName string = ' gpt-4o-mini'
 @description('Id of the user or app to assign application roles. If ommited will be generated from the user assigned identity.')
 param principalId string = ''
+@description('Resource ID of existing Azure Communication Services. If provided, will use existing ACS instead of creating new one.')
+param existingAcsResourceId string = ''
+@description('Connection string for existing ACS. Required if existingAcsResourceId is provided.')
+@secure()
+param existingAcsConnectionString string = ''
+@description('Resource ID of existing AI Services. If provided, will use existing AI Services instead of creating new one.')
+param existingAiServicesResourceId string = ''
+@description('Endpoint for existing AI Services. Required if existingAiServicesResourceId is provided.')
+param existingAiServicesEndpoint string = ''
 
 var uniqueSuffix = substring(uniqueString(subscription().id, environmentName), 0, 5)
 var tags = {'azd-env-name': environmentName }
@@ -56,21 +64,7 @@ module monitoring 'modules/monitoring/monitor.bicep' = {
   }
 }
 
-module registry 'modules/containerregistry.bicep' = {
-  name: 'registry'
-  scope: rg
-  params: {
-    location: location
-    environmentName: environmentName
-    uniqueSuffix: uniqueSuffix
-    identityName: appIdentity.outputs.name
-    tags: tags
-  }
-  dependsOn: [ appIdentity ]
-}
-
-
-module aiServices 'modules/aiservices.bicep' = {
+module aiServices 'modules/aiservices.bicep' = if (empty(existingAiServicesResourceId)) {
   name: 'ai-foundry-deployment'
   scope: rg
   params: {
@@ -79,10 +73,9 @@ module aiServices 'modules/aiservices.bicep' = {
     identityId: appIdentity.outputs.identityId
     tags: tags
   }
-  dependsOn: [ appIdentity ]
 }
 
-module acs 'modules/acs.bicep' = {
+module acs 'modules/acs.bicep' = if (empty(existingAcsResourceId)) {
   name: 'acs-deployment'
   scope: rg
   params: {
@@ -94,6 +87,13 @@ module acs 'modules/acs.bicep' = {
 
 var keyVaultName = toLower(replace('kv-${environmentName}-${uniqueSuffix}', '_', '-'))
 var sanitizedKeyVaultName = take(toLower(replace(replace(replace(replace(keyVaultName, '--', '-'), '_', '-'), '[^a-zA-Z0-9-]', ''), '-$', '')), 24)
+
+// Configuration for using existing resources vs creating new ones
+// Note: The Bicep linter may show warnings about potential null values in conditional expressions.
+// These are false positives - the ternary operators ensure only one branch executes at deployment time.
+// When existingAcsResourceId is empty, new ACS is created and its outputs are used.
+// When existingAcsResourceId is provided, the existing resource values are used instead.
+
 module keyvault 'modules/keyvault.bicep' = {
   name: 'keyvault-deployment'
   scope: rg
@@ -101,42 +101,36 @@ module keyvault 'modules/keyvault.bicep' = {
     location: location
     keyVaultName: sanitizedKeyVaultName
     tags: tags
-    acsConnectionString: acs.outputs.acsConnectionString
+    acsConnectionString: empty(existingAcsResourceId) ? acs.outputs.acsConnectionString : existingAcsConnectionString
   }
-  dependsOn: [ appIdentity, acs ]
 }
 
-// Add role assignments 
+// Add role assignments
 module RoleAssignments 'modules/roleassignments.bicep' = {
   scope: rg
   name: 'role-assignments'
   params: {
     identityPrincipalId: appIdentity.outputs.principalId
-    aiServicesId: aiServices.outputs.aiServicesId
+    aiServicesId: empty(existingAiServicesResourceId) ? aiServices.outputs.aiServicesId : existingAiServicesResourceId
     keyVaultName: sanitizedKeyVaultName
   }
-  dependsOn: [ keyvault, appIdentity ] 
 }
 
-module containerapp 'modules/containerapp.bicep' = {
-  name: 'containerapp-deployment'
+module appService 'modules/appservice.bicep' = {
+  name: 'appservice-deployment'
   scope: rg
   params: {
     location: location
     environmentName: environmentName
     uniqueSuffix: uniqueSuffix
     tags: tags
-    exists: appExists
     identityId: appIdentity.outputs.identityId
     identityClientId: appIdentity.outputs.clientId
-    containerRegistryName: registry.outputs.name
-    aiServicesEndpoint: aiServices.outputs.aiServicesEndpoint
+    aiServicesEndpoint: empty(existingAiServicesResourceId) ? aiServices.outputs.aiServicesEndpoint : existingAiServicesEndpoint
     modelDeploymentName: modelName
     acsConnectionStringSecretUri: keyvault.outputs.acsConnectionStringUri
     logAnalyticsWorkspaceName: logAnalyticsName
-    imageName: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   }
-  dependsOn: [keyvault, RoleAssignments]
 }
 
 
@@ -147,7 +141,10 @@ output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_USER_ASSIGNED_IDENTITY_ID string = appIdentity.outputs.identityId
 output AZURE_USER_ASSIGNED_IDENTITY_CLIENT_ID string = appIdentity.outputs.clientId
 
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
-output SERVICE_API_ENDPOINTS array = ['${containerapp.outputs.containerAppFqdn}/acs/incomingcall']
-output AZURE_VOICE_LIVE_ENDPOINT string = aiServices.outputs.aiServicesEndpoint
+output AZURE_APP_SERVICE_NAME string = appService.outputs.appServiceName
+output AZURE_APP_SERVICE_URL string = appService.outputs.appServiceUrl
+output SERVICE_API_ENDPOINTS array = ['${appService.outputs.appServiceUrl}/acs/incomingcall']
 output AZURE_VOICE_LIVE_MODEL string = modelName
+// Note: These outputs use conditional logic and may show linter warnings, but will work correctly at deployment time
+output AZURE_ACS_RESOURCE_ID string = existingAcsResourceId != '' ? existingAcsResourceId : (acs.outputs.acsResourceId ?? '')
+output AZURE_AI_SERVICES_RESOURCE_ID string = existingAiServicesResourceId != '' ? existingAiServicesResourceId : (aiServices.outputs.aiServicesId ?? '')
