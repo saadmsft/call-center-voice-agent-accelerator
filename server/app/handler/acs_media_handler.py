@@ -225,6 +225,9 @@ class ACSMediaHandler:
                     case "conversation.item.input_audio_transcription.completed":
                         transcript = event.get("transcript")
                         logger.info("User: %s", transcript)
+                        await self.send_message(
+                            json.dumps({"Kind": "Transcription", "Text": transcript, "Speaker": "User"})
+                        )
 
                     case "conversation.item.input_audio_transcription.failed":
                         error_msg = event.get("error")
@@ -243,7 +246,7 @@ class ACSMediaHandler:
                         transcript = event.get("transcript")
                         logger.info("AI: %s", transcript)
                         await self.send_message(
-                            json.dumps({"Kind": "Transcription", "Text": transcript})
+                            json.dumps({"Kind": "Transcription", "Text": transcript, "Speaker": "Assistant"})
                         )
 
                     case "response.audio.delta":
