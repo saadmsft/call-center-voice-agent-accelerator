@@ -18,6 +18,8 @@ app.config["ACS_DEV_TUNNEL"] = os.getenv("ACS_DEV_TUNNEL", "")
 app.config["AZURE_USER_ASSIGNED_IDENTITY_CLIENT_ID"] = os.getenv(
     "AZURE_USER_ASSIGNED_IDENTITY_CLIENT_ID", ""
 )
+app.config["AZURE_AI_AGENT_ID"] = os.getenv("AZURE_AI_AGENT_ID", "")
+app.config["AZURE_AI_PROJECT_NAME"] = os.getenv("AZURE_AI_PROJECT_NAME", "")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s: %(message)s"
